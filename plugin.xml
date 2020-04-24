@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id="cordova-plugin-bg-geolocation"
+        version="0.0.1">
+
+    <name>BackgroundMode</name>
+
+    <description>Prevent apps from going to sleep in background while using location.</description>
+
+    <repo>https://github.com/Anuj-Raghuvanshi/cordova-plugin-bg-geolocation.git</repo>
+
+    <keywords>background, geolocation</keywords>
+
+    <license>Apache 2.0</license>
+
+    <author>Anuj Raghuvanshi</author>
+
+    <!-- dependencies -->
+    <dependency id="cordova-plugin-device" />
+
+    <!-- cordova -->
+    <engines>
+        <engine name="cordova" version=">=3.0.0" />
+        <engine name="android-sdk" version=">=16" />
+    </engines>
+
+    <!-- js -->
+    <js-module src="www/background-mode.js" name="BackgroundMode">
+        <clobbers target="cordova.plugins.backgroundMode" />
+        <clobbers target="plugin.backgroundMode" />
+    </js-module>
+
+    <!-- ios -->
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="BackgroundMode">
+                <param name="ios-package" value="BackgroundMode" onload="true" />
+                <param name="onload" value="true" />
+            </feature>
+        </config-file>
+
+        <config-file target="*-Info.plist" parent="UIBackgroundModes">
+            <array>
+                <string>location</string>
+            </array>
+        </config-file>
+
+        <header-file src="src/ios/BackgroundMode.h" />
+        <source-file src="src/ios/BackgroundMode.m" />
+    </platform>
+
+</plugin>

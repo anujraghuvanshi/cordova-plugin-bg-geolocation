@@ -1,0 +1,38 @@
+{
+	"name":"cordova-plugin-bg-geolocation",
+	"version":"0.0.1",
+	"description":"Prevent apps from going to sleep in background while using location.",
+	"cordova":{
+	   "id":"cordova-plugin-bg-geolocation",
+		"platforms":[
+			"ios"
+		]
+	},
+	"repository":{
+	   "type":"git",
+	   "url":"git+https://github.com/Anuj-Raghuvanshi/cordova-plugin-bg-geolocation.git"
+	},
+	"keywords":[
+		"Anuj Raghuvanshi",
+		"background",
+		"ecosystem:cordova",
+		"cordova-ios",
+		"cordova-android",
+		"cordova-browser"
+	],
+	"engines":[
+		{
+			"name":"cordova",
+			"version":">=3.0.0"
+		},
+		{
+			"name":"android-sdk",
+			"version":">=16"
+		}
+	],
+	"author":"Anuj Raghuvanshi",
+	"bugs":{
+	   "url":"https://github.com/Anuj-Raghuvanshi/cordova-plugin-bg-geolocation/issues"
+	},
+	"homepage":"https://github.com/Anuj-Raghuvanshi/cordova-plugin-bg-geolocation#readme"
+}
