@@ -19,7 +19,7 @@ NSString* previousUpdatedLong = @"";
 /**
  * Stores local Variables used by this plugin.
  */
-CGFloat interval = 5.0;
+CGFloat interval = 10.0;
 int lastLocationUpdated = 0; // Value in seconds when last location updated.
 int afterLastUpdateMinutes = 2;
 int minimumDistanceChanged = 200; // In meters
@@ -28,7 +28,7 @@ int minimumDistanceChanged = 200; // In meters
 #pragma mark - Life Cycle
 /*****************************************/
 
-- (void) startGettingBackgroundLocation: (CDVInvokedUrlCommand*)command;
+- (void) startGettingBackgroundLocation: (CDVInvokedUrlCommand*)command
 {
     pluginCommand = command;
 
@@ -46,10 +46,10 @@ int minimumDistanceChanged = 200; // In meters
         }
     }
     
-    // Converting into minutes for interval
+    // Converting into seconds for interval
     interval = interval * 60;
 
-    // Converting into minutes for interval
+    // Converting into seconds for interval
     afterLastUpdateMinutes = afterLastUpdateMinutes * 60;
     
     [self initTimer: &interval];
@@ -105,7 +105,7 @@ int minimumDistanceChanged = 200; // In meters
 
     [self.locationManager startUpdatingLocation];
     [self.locationManager stopUpdatingLocation];
-    [self.locationManager startMonitoringSignificantLocationChanges];
+    [self.locationManager startMonitoringSignificantLocationChanges ];
     
     CLLocation *location = [self.locationManager location];
     CLLocationCoordinate2D coordinate = [location coordinate];
@@ -121,7 +121,7 @@ int minimumDistanceChanged = 200; // In meters
     didUpdateToLocation:(CLLocation *)newLocation
            fromLocation:(CLLocation *)oldLocation{
     
-	BOOL canUpdate = false;
+    BOOL canUpdate = false;
     
     if(lastLocationUpdated < afterLastUpdateMinutes) {
         canUpdate = true;
@@ -271,6 +271,17 @@ int minimumDistanceChanged = 200; // In meters
     } else {
         return NO;
     }
+}
+
+
+/*************************************************/
+#pragma mark - Disable Plugin
+/*************************************************/
+
+- (void) disable:(CDVInvokedUrlCommand *)command
+{
+    [self.timer invalidate];
+    [self.locationManager stopUpdatingLocation];
 }
 
 /*********************************************/

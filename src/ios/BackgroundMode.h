@@ -14,6 +14,7 @@ enum CDVLocationStatus {
 // Activate the background mode
 
 - (void) startGettingBackgroundLocation:(CDVInvokedUrlCommand*)command;
+- (void) disable:(CDVInvokedUrlCommand*)command;
 - (void) checkUpdates:(NSTimer *)timer;
 
 @end

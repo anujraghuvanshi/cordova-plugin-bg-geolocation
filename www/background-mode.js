@@ -24,6 +24,12 @@ var exec    = require('cordova/exec'),
 		cordova.exec(successCallback, errCallback, 'BackgroundMode', 'startGettingBackgroundLocation', [interval, afterLastUpdateMinutes, minimumDistanceChanged]);
 	};
 
+	exports.disable = function()
+	{
+		cordova.exec(null, null, 'BackgroundMode', 'disable');
+		console.log('Plugin Disabled');
+	};
+
 	// Called before 'deviceready' listener will be called
 	channel.onCordovaReady.subscribe(function()
 	{
