@@ -23,6 +23,8 @@ CGFloat interval = 10.0;
 int lastLocationUpdated = 0; // Value in seconds when last location updated.
 int afterLastUpdateMinutes = 2;
 int minimumDistanceChanged = 200; // In meters
+NSDictionary *timeSlot;
+
 
 /*****************************************/
 #pragma mark - Life Cycle
@@ -30,6 +32,8 @@ int minimumDistanceChanged = 200; // In meters
 
 - (void) startGettingBackgroundLocation: (CDVInvokedUrlCommand*)command
 {
+    NSLog(@"startGettingBackgroundLocation");
+    
     pluginCommand = command;
 
     if([command.arguments count] > 0) {
@@ -42,20 +46,98 @@ int minimumDistanceChanged = 200; // In meters
         }
         
         if([command.arguments objectAtIndex:2] != nil) {
-            minimumDistanceChanged = [[command.arguments objectAtIndex:1] doubleValue];
+            minimumDistanceChanged = [[command.arguments objectAtIndex:2] doubleValue];
+        }
+        
+        if([command.arguments objectAtIndex:3] != nil) {
+            timeSlot = [command.arguments objectAtIndex:3];
         }
     }
-    
+ 
     // Converting into seconds for interval
     interval = interval * 60;
+    
+    NSLog(@"interval %f", interval);
 
     // Converting into seconds for interval
     afterLastUpdateMinutes = afterLastUpdateMinutes * 60;
     
-    [self initTimer: &interval];
-    [self startTimerToGetLastLocationUpdateTime];
+    if([self canUpdateLocationNow]) {
+        NSLog(@"Location can be updated now");
+        [self initTimer: &interval];
+        [self startTimerToGetLastLocationUpdateTime];
+    }else {
+        NSLog(@"Location cannot be updated now");
+    }
 }
 
+- (BOOL) canUpdateLocationNow{
+    
+    NSString* startTimeFromSetting = [timeSlot objectForKey:@"start_time"];
+    NSString* endTimeFromSetting = [timeSlot objectForKey:@"end_time"];
+    NSArray* allowedDays = [timeSlot objectForKey:@"days"];
+    NSDate *CurrentDate = [NSDate date];
+    NSMutableArray * weekDaysStrings = [NSMutableArray array];
+    
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    NSArray *daySymbols = dateFormatter.standaloneWeekdaySymbols;
+
+    for(int i = 0; i < allowedDays.count; i++) {
+        NSInteger dayIndex = [allowedDays[i] doubleValue];
+        NSString *dayName = daySymbols[dayIndex % 7];
+        [weekDaysStrings addObject:dayName];
+    }
+    
+    [dateFormatter setDateFormat:@"EEEE"];
+    NSString *dayName = [dateFormatter stringFromDate:CurrentDate];
+    
+    BOOL isAllowedForDay = [weekDaysStrings containsObject:dayName];
+
+    if(isAllowedForDay) {
+        [dateFormatter setDateFormat:@"HH:mm:ss"];
+        NSString *nowTimeString = [dateFormatter stringFromDate:[NSDate date]];
+        
+        NSLog(@"nowTimeString %@", nowTimeString);
+        
+        int startTime = [self minutesSinceMidnight:[dateFormatter dateFromString:[startTimeFromSetting stringByAppendingString:@":00"]]];
+        int endTime   = [self minutesSinceMidnight:[dateFormatter dateFromString:[endTimeFromSetting stringByAppendingString:@":00"]]];
+        int nowTime   = [self minutesSinceMidnight:[dateFormatter dateFromString:nowTimeString]];
+        
+        NSLog(@"startTime %d", startTime);
+        NSLog(@"nowTime  %d", nowTime);
+        NSLog(@"endTime  %d", endTime);
+        
+        if (startTime <= nowTime && nowTime <= endTime){
+            NSLog(@"Anuj BW");
+            return true;
+        }else {
+            NSLog(@"Anuj BW NOT");
+        };
+        
+        return false;
+    }
+    
+    return false;
+    
+}
+
+-(int) minutesSinceMidnight:(NSDate *)date
+{
+    NSDateComponents *components = [[NSCalendar currentCalendar] components:NSCalendarUnitHour|NSCalendarUnitMinute|NSCalendarUnitSecond  fromDate:date];
+    return 60 * (int)[components hour] + (int)[components minute];
+}
+
+- (void) switchToLocationSettings: (CDVInvokedUrlCommand*)command
+{
+    
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+}
+
+- (void) switchToSettings: (CDVInvokedUrlCommand*)command
+{
+    
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"App-Prefs:root=LOCATION_SERVICES"]];
+}
 
 #pragma mark -
 #pragma mark Our App Code.
@@ -66,11 +148,15 @@ int minimumDistanceChanged = 200; // In meters
 /***********************************************************************/
 
 - (void)initTimer: (CGFloat*)interval   {
-
+    
+    NSLog(@"initTimer initiated");
+    
     if(![self canUpdateLocation]){
         [self.timer invalidate];
         return;
     };
+    
+    NSLog(@"initTimer working");
     
      // Create the location manager if this object does not already have one.
 
@@ -78,12 +164,10 @@ int minimumDistanceChanged = 200; // In meters
         self.locationManager = [[CLLocationManager alloc] init];
 
     self.locationManager.delegate = self;
-    [self.locationManager requestAlwaysAuthorization];
-    [self.locationManager startMonitoringSignificantLocationChanges];
     [self.locationManager setAllowsBackgroundLocationUpdates:YES];
 
-
     if (self.timer == nil) {
+        
         self.timer = [NSTimer scheduledTimerWithTimeInterval:*interval
                                                       target:self
                                                         selector:@selector(checkUpdates:)
@@ -94,10 +178,15 @@ int minimumDistanceChanged = 200; // In meters
 
 - (void)checkUpdates: (NSTimer *)timer{
     
+    NSLog(@"checkUpdates started");
     if(![self canUpdateLocation]){
         [self.timer invalidate];
         return;
     };
+    
+    if(![self canUpdateLocationNow]) return;
+    
+    NSLog(@"checkUpdates working");
     
 //    UIApplication*    app = [UIApplication sharedApplication];
 //    double remaining = app.backgroundTimeRemaining;
@@ -105,74 +194,75 @@ int minimumDistanceChanged = 200; // In meters
 
     [self.locationManager startUpdatingLocation];
     [self.locationManager stopUpdatingLocation];
-    [self.locationManager startMonitoringSignificantLocationChanges ];
+//    [self.locationManager startMonitoringSignificantLocationChanges ];
     
     CLLocation *location = [self.locationManager location];
     CLLocationCoordinate2D coordinate = [location coordinate];
     
     NSString *latitude = [NSString stringWithFormat:@"%f", coordinate.latitude];
     NSString *longitude = [NSString stringWithFormat:@"%f", coordinate.longitude];
-
+    
+    
     [self updateCallBack:pluginCommand latitude:latitude longitude:longitude];
 }
 
 
--(void)locationManager:(CLLocationManager *)manager
-    didUpdateToLocation:(CLLocation *)newLocation
-           fromLocation:(CLLocation *)oldLocation{
-    
-    BOOL canUpdate = false;
-    
-    if(lastLocationUpdated < afterLastUpdateMinutes) {
-        canUpdate = true;
-    }
-    
-    if([previousUpdatedLat length] != 0 && [previousUpdatedLong length] != 0){
-        CLLocation *startLocation = [[CLLocation alloc] initWithLatitude:[previousUpdatedLat doubleValue] longitude:[previousUpdatedLong doubleValue]];
-        CLLocation *endLocation = [[CLLocation alloc] initWithLatitude:[newLocation coordinate].latitude longitude:[newLocation coordinate].longitude];
-        CLLocationDistance distance = [startLocation distanceFromLocation:endLocation]; // aka double
-        
-        if(distance >= minimumDistanceChanged) {
-            canUpdate = true;
-        }
-    }
-    
-    if(canUpdate) {
-        [self updateLocationWithLatitude:[newLocation coordinate].latitude andLongitude:[newLocation coordinate].longitude];
-    }
-    
-    UIApplication* app = [UIApplication sharedApplication];
-    
-    __block UIBackgroundTaskIdentifier bgTask =
-    bgTask = [app beginBackgroundTaskWithExpirationHandler:^{
-        [app endBackgroundTask:bgTask];
-        bgTask = UIBackgroundTaskInvalid;
-    }];
-    
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [self initTimer: &interval];
-    });
-}
+//-(void)locationManager:(CLLocationManager *)manager
+//    didUpdateToLocation:(CLLocation *)newLocation
+//           fromLocation:(CLLocation *)oldLocation{
+//
+//    BOOL canUpdate = false;
+//
+//    if(lastLocationUpdated < afterLastUpdateMinutes) {
+//        canUpdate = true;
+//    }
+//
+//    if([previousUpdatedLat length] != 0 && [previousUpdatedLong length] != 0){
+//        CLLocation *startLocation = [[CLLocation alloc] initWithLatitude:[previousUpdatedLat doubleValue] longitude:[previousUpdatedLong doubleValue]];
+//        CLLocation *endLocation = [[CLLocation alloc] initWithLatitude:[newLocation coordinate].latitude longitude:[newLocation coordinate].longitude];
+//        CLLocationDistance distance = [startLocation distanceFromLocation:endLocation]; // aka double
+//
+//        if(distance >= minimumDistanceChanged) {
+//            canUpdate = true;
+//        }
+//    }
+//
+////    if(canUpdate) {
+////        [self updateLocationWithLatitude:[newLocation coordinate].latitude andLongitude:[newLocation coordinate].longitude];
+////    }
+//
+//    UIApplication* app = [UIApplication sharedApplication];
+//
+//    __block UIBackgroundTaskIdentifier bgTask =
+//    bgTask = [app beginBackgroundTaskWithExpirationHandler:^{
+//        [app endBackgroundTask:bgTask];
+//        bgTask = UIBackgroundTaskInvalid;
+//    }];
+//
+//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//        [self initTimer: &interval];
+//    });
+//}
 
 /****************************************************/
 #pragma mark - Update Location.
 /****************************************************/
-
--(void)updateLocationWithLatitude:(CLLocationDegrees)latitude
-                     andLongitude:(CLLocationDegrees)longitude{
-    
-    NSString *lati = [NSString stringWithFormat:@"%f", latitude];
-    NSString *longi = [NSString stringWithFormat:@"%f", longitude];
-        
-    /**
-     * Preventing updating when lat & long comes like - 0.0000
-     * Because this is returned by location manager when location not detected.
-     */
-    if([lati doubleValue] == 0.00 && [longi doubleValue] == 0.00) return;
-    
-    [self updateCallBack:pluginCommand latitude:lati longitude:longi];
-    
-}
+//
+//-(void)updateLocationWithLatitude:(CLLocationDegrees)latitude
+//                     andLongitude:(CLLocationDegrees)longitude{
+//
+//    NSString *lati = [NSString stringWithFormat:@"%f", latitude];
+//    NSString *longi = [NSString stringWithFormat:@"%f", longitude];
+//
+//    /**
+//     * Preventing updating when lat & long comes like - 0.0000
+//     * Because this is returned by location manager when location not detected.
+//     */
+//    if([lati doubleValue] == 0.00 && [longi doubleValue] == 0.00) return;
+//
+//    [self updateCallBack:pluginCommand latitude:lati longitude:longi];
+//
+//}
 
 - (void) updateCallBack:(CDVInvokedUrlCommand*)command latitude:(NSString*)latitude longitude:(NSString*)longitude  {
     
@@ -181,6 +271,27 @@ int minimumDistanceChanged = 200; // In meters
     [dict setObject: [NSString stringWithFormat:@"%@", longitude] forKey:  @"long"];
     
     // Store Lat Long to compare next time when user changes location.
+    NSLog(@" previousUpdatedLat %@", previousUpdatedLat);
+    NSLog(@" latitude %@", latitude);
+    NSLog(@" previousUpdatedLong %@", previousUpdatedLong);
+    NSLog(@" longitude %@", longitude);
+    
+//    if(previousUpdatedLat == latitude && previousUpdatedLong == longitude) return;
+    
+    if([previousUpdatedLat length] != 0 && [previousUpdatedLong length] != 0){
+        CLLocation *startLocation = [[CLLocation alloc] initWithLatitude:[previousUpdatedLat doubleValue] longitude:[previousUpdatedLong doubleValue]];
+        CLLocation *endLocation = [[CLLocation alloc] initWithLatitude:[latitude doubleValue] longitude:[longitude doubleValue]];
+        CLLocationDistance distance = [startLocation distanceFromLocation:endLocation]; // aka double
+            
+        NSLog(@"Distance %f", distance);
+        NSLog(@"Distance %d", minimumDistanceChanged);
+        
+        // if(distance <= minimumDistanceChanged) {
+        //     return;
+        // }
+    }
+    
+    
     previousUpdatedLat = latitude;
     previousUpdatedLong = longitude;
         
@@ -210,6 +321,7 @@ int minimumDistanceChanged = 200; // In meters
 #pragma mark - Check Authorization For plugin.
 /********************************************************************************/
 
+// Checks if location can be updated based on location permission settings.
 - (BOOL) canUpdateLocation {
 
     if (![self isLocationServicesEnabled]) {
@@ -280,6 +392,7 @@ int minimumDistanceChanged = 200; // In meters
 
 - (void) disable:(CDVInvokedUrlCommand *)command
 {
+    NSLog(@"disable called");
     [self.timer invalidate];
     [self.locationManager stopUpdatingLocation];
 }
@@ -290,6 +403,7 @@ int minimumDistanceChanged = 200; // In meters
 
 - (void) sendPluginResult: (CDVPluginResult*)result :(CDVInvokedUrlCommand*)command
 {
+    NSLog(@"sendPluginResult called");
     [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
 }
 

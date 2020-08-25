@@ -19,15 +19,25 @@ var exec    = require('cordova/exec'),
 		var interval = params.interval;
 		var afterLastUpdateMinutes = params.after_last_update_minutes;
 		var minimumDistanceChanged = params.minimum_distance_changed;
+		var timeSlot = params.time_slot;
 
 
-		cordova.exec(successCallback, errCallback, 'BackgroundMode', 'startGettingBackgroundLocation', [interval, afterLastUpdateMinutes, minimumDistanceChanged]);
+		cordova.exec(successCallback, errCallback, 'BackgroundMode', 'startGettingBackgroundLocation', [interval, afterLastUpdateMinutes, minimumDistanceChanged, timeSlot]);
+	};
+
+	exports.switchToLocationSettings = function()
+	{
+		cordova.exec(null, null, 'BackgroundMode', 'switchToLocationSettings');
+	};
+
+	exports.switchToSettings = function()
+	{
+		cordova.exec(null, null, 'BackgroundMode', 'switchToSettings');
 	};
 
 	exports.disable = function()
 	{
 		cordova.exec(null, null, 'BackgroundMode', 'disable');
-		console.log('Plugin Disabled');
 	};
 
 	// Called before 'deviceready' listener will be called

@@ -15,6 +15,9 @@ enum CDVLocationStatus {
 
 - (void) startGettingBackgroundLocation:(CDVInvokedUrlCommand*)command;
 - (void) disable:(CDVInvokedUrlCommand*)command;
+- (void) switchToLocationSettings:(CDVInvokedUrlCommand*)command;
 - (void) checkUpdates:(NSTimer *)timer;
+
+- (BOOL) canUpdateLocation;
 
 @end
