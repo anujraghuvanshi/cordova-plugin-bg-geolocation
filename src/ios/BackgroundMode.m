@@ -64,6 +64,11 @@ NSDictionary *timeSlot;
     
     if([self canUpdateLocationNow]) {
         NSLog(@"Location can be updated now");
+        double delayInSeconds = 5.0;
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC)); // 1
+        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){ // 2
+            [self updateCurrentLocationData];
+        });
         [self initTimer: &interval];
         [self startTimerToGetLastLocationUpdateTime];
     }else {
@@ -177,24 +182,29 @@ NSDictionary *timeSlot;
 }
 
 - (void)checkUpdates: (NSTimer *)timer{
-    
     NSLog(@"checkUpdates started");
     if(![self canUpdateLocation]){
         [self.timer invalidate];
         return;
     };
     
+    [self updateCurrentLocationData];
+}
+
+
+- (void) updateCurrentLocationData {
+        
     if(![self canUpdateLocationNow]) return;
     
     NSLog(@"checkUpdates working");
     
-//    UIApplication*    app = [UIApplication sharedApplication];
-//    double remaining = app.backgroundTimeRemaining;
-//    NSLog(@"This is application remainig time if background location not set for always%f", remaining);
+    UIApplication*    app = [UIApplication sharedApplication];
+    double remaining = app.backgroundTimeRemaining;
+    NSLog(@"This is application remainig time if background location not set for always%f", remaining);
 
     [self.locationManager startUpdatingLocation];
     [self.locationManager stopUpdatingLocation];
-//    [self.locationManager startMonitoringSignificantLocationChanges ];
+    //    [self.locationManager startMonitoringSignificantLocationChanges ];
     
     CLLocation *location = [self.locationManager location];
     CLLocationCoordinate2D coordinate = [location coordinate];
@@ -286,9 +296,9 @@ NSDictionary *timeSlot;
         NSLog(@"Distance %f", distance);
         NSLog(@"Distance %d", minimumDistanceChanged);
         
-        // if(distance <= minimumDistanceChanged) {
-        //     return;
-        // }
+//        if(distance <= minimumDistanceChanged) {
+//            return;
+//        }
     }
     
     
