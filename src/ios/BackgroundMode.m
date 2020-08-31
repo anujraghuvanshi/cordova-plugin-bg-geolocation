@@ -140,8 +140,7 @@ NSDictionary *timeSlot;
 
 - (void) switchToSettings: (CDVInvokedUrlCommand*)command
 {
-    
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"App-Prefs:root=LOCATION_SERVICES"]];
+    // 
 }
 
 #pragma mark -
